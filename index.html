@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Calling Agent v3-logic — Dastarkhwan Demo</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#14100c;color:#f5ead9;padding:14px;max-width:720px;margin:0 auto}
+  h1{font-size:21px;color:#f5b942;text-align:center}
+  .sub{text-align:center;color:#cbb896;font-size:13px;margin:4px 0 12px}
+  .badge{display:inline-block;background:#f5b942;color:#14100c;font-weight:700;font-size:12px;padding:4px 10px;border-radius:20px}
+  .center{text-align:center;margin-bottom:12px}
+  .panel{background:#241b12;border:1px solid #4a3520;border-radius:14px;padding:14px;margin-bottom:12px}
+  .panel h2{font-size:16px;color:#f5b942;margin-bottom:8px}
+  #chat{max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  .msg{max-width:85%;padding:10px 12px;border-radius:12px;font-size:15px;line-height:1.5}
+  .msg small{display:block;font-size:12px;color:#cbb896;margin-top:4px}
+  .agent{background:#3a2a1a;align-self:flex-start;border-bottom-left-radius:4px}
+  .user{background:#f5b942;color:#14100c;align-self:flex-end;border-bottom-right-radius:4px;font-weight:600}
+  .sys{background:#333;align-self:center;font-size:12px;color:#cbb896}
+  .typing{align-self:flex-start;background:#3a2a1a;border-radius:12px;padding:10px 12px;font-size:13px;color:#cbb896}
+  .row{display:flex;gap:8px}
+  input{flex:1;padding:12px;border-radius:10px;border:1px solid #4a3520;background:#14100c;color:#fff;font-size:15px;min-height:44px}
+  select{flex:1;padding:10px;border-radius:10px;background:#14100c;color:#fff;border:1px solid #4a3520;font-size:14px;min-height:44px}
+  button{padding:12px 16px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;min-height:44px}
+  .mic{background:#f5b942;color:#14100c}
+  .mic.listening{background:#e74c3c;color:#fff}
+  .send{background:#27ae60;color:#fff}
+  .reset{background:#444;color:#fff;width:100%;margin-top:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{background:#3a2a1a;border:1px solid #4a3520;color:#ffe9c4;padding:6px 10px;border-radius:20px;font-size:13px;cursor:pointer;min-height:36px}
+  .chip:active{border-color:#f5b942}
+  #status{color:#cbb896;font-size:12px;margin-top:8px}
+  .catgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
+  .cat{background:#14100c;border:1px solid #4a3520;border-radius:10px;padding:10px}
+  .cat b{display:block}
+  .cat span{color:#f5b942;font-weight:700}
+  #dashList{list-style:none;font-size:14px}
+  #dashList li{padding:6px 0;border-bottom:1px solid #3a2a1a;cursor:pointer}
+  #dashTotals{font-weight:800;color:#f5b942;margin-bottom:6px}
+  .order-detail{display:none;background:#14100c;border-radius:10px;padding:10px;margin:6px 0;font-size:13px;line-height:1.6}
+  .order-detail.open{display:block}
+  .order-detail select{min-height:36px;font-size:13px;padding:6px}
+  #waPanel{display:none;background:#1a120b;border:1px solid #27ae60;border-radius:10px;padding:12px;margin-top:10px}
+  #waMsg{white-space:pre-wrap;font-size:14px;line-height:1.6}
+  .wa-btn{display:inline-block;background:#25D366;color:#fff;padding:12px 16px;border-radius:10px;font-weight:700;text-decoration:none;margin-top:8px}
+  .cart-item{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #3a2a1a;align-items:center}
+  .cart-item .rm{background:#444;color:#fff;padding:6px 10px;min-height:36px;font-size:13px}
+  #cartTotal{font-weight:800;color:#f5b942;margin-top:8px}
+  .note{font-size:12px;color:#cbb896;text-align:center;line-height:1.6;margin-top:6px}
+  .lbl{font-size:13px;color:#cbb896;margin:10px 0 4px}
+  input[type=range]{width:100%}
+</style>
+</head>
+<body>
+
+<h1>📞 AI Calling Agent — Dastarkhwan Demo</h1>
+<p class="sub">Poora Dastarkhwan menu — 99 dishes — customer call ki live naqal (v3-logic)</p>
+<div class="center"><span class="badge">DEMO — browser me chalta hai, asli phone version me Twilio lagega</span></div>
+
+<div class="panel">
+  <h2>🎧 Call — Agent: Sara (Urdu awaz)</h2>
+  <div id="chat" aria-live="polite"></div>
+  <div id="typing" class="typing" style="display:none">Sara likh rahi hai...</div>
+  <div class="row">
+    <button class="mic" id="micBtn" onclick="toggleListen()" aria-label="Mic on ya off karo">🎤 Mic</button>
+    <input id="textIn" placeholder="Ya yahan likh ke jawab do..." aria-label="Jawab likho" onkeydown="if(event.key==='Enter')sendText()">
+    <button class="send" onclick="sendText()" aria-label="Jawab bhejo">Bhejo</button>
+  </div>
+  <div id="status">Call shuru karne ke liye neeche "Call shuru karo" dabao.</div>
+  <div class="row" style="margin-top:8px">
+    <select id="voiceSel" aria-label="Awaz chuno"></select>
+    <button onclick="testVoice()" style="background:#555;color:#fff" aria-label="Awaz test karo">🔊 Awaz test</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <select id="recLang" aria-label="Mic ki zuban chuno">
+      <option value="ur-PK">Mic zuban: Urdu</option>
+      <option value="en-US">Mic zuban: English / Roman</option>
+    </select>
+  </div>
+  <div class="lbl">Bolne ki speed: <span id="rateVal">1.0</span></div>
+  <input type="range" id="rateRange" min="0.5" max="1.5" step="0.1" value="1" aria-label="Bolne ki speed" oninput="document.getElementById('rateVal').textContent=this.value">
+  <div class="lbl">Awaz ki pitch: <span id="pitchVal">1.0</span></div>
+  <input type="range" id="pitchRange" min="0.5" max="2" step="0.1" value="1" aria-label="Awaz ki pitch" oninput="document.getElementById('pitchVal').textContent=this.value">
+  <div class="chips" id="chips"></div>
+  <button class="reset" onclick="startCall()" aria-label="Call shuru karo ya nayi call">📞 Call shuru karo / Nayi call</button>
+</div>
+
+<!-- NEW: live cart panel (C.1) -->
+<div class="panel">
+  <h2>🛒 Cart (live)</h2>
+  <div id="cartList" style="color:#cbb896">Abhi cart khali hai.</div>
+  <div id="cartTotal"></div>
+</div>
+
+<div class="panel">
+  <h2>🍽️ Dastarkhwan Menu — 10 categories, 99 dishes</h2>
+  <div class="catgrid">
+    <div class="cat"><b>Sigri Special — Coal Grilled</b><span>10 dishes</span><br>Chicken Tikka, Seekh Kabab, Malai Boti...</div>
+    <div class="cat"><b>Wok Fresh — Desi Tadka</b><span>10 dishes</span><br>Chicken Karahi, Mutton Karahi, Nihari...</div>
+    <div class="cat"><b>Dum Style — Full Masala</b><span>10 dishes</span><br>Chicken Biryani, Beef Biryani, Pulao...</div>
+    <div class="cat"><b>Crispy &amp; Loaded</b><span>10 dishes</span><br>Zinger Burger, Shawarma Platter, Broast...</div>
+    <div class="cat"><b>Wok Fresh — Indo Chinese</b><span>10 dishes</span><br>Chow Mein, Manchurian, Fried Rice...</div>
+    <div class="cat"><b>Wood-Fired — Extra Cheese</b><span>10 dishes</span><br>Tikka Pizza, Fajita Pizza, Cheese Pizza...</div>
+    <div class="cat"><b>Desi Nashta — Fresh &amp; Hot</b><span>9 dishes</span><br>Halwa Puri, Siri Paye, Paratha...</div>
+    <div class="cat"><b>Fresh &amp; Chilled</b><span>10 dishes</span><br>Mango Lassi, Kashmiri Chai, Mint Margarita...</div>
+    <div class="cat"><b>Meetha — Shahi Style</b><span>10 dishes</span><br>Gulab Jamun, Kheer, Kulfi Falooda...</div>
+    <div class="cat"><b>Rolled Fresh — To Go</b><span>10 dishes</span><br>Paratha Roll, Bihari Roll, Shawarma...</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>📊 Owner Dashboard (live)</h2>
+  <div id="dashTotals">Aaj ke orders: 0 | Total sale: Rs. 0</div>
+  <div id="topDishes" style="font-size:13px;color:#cbb896;margin-bottom:8px"></div>
+  <ul id="dashList"><li style="color:#cbb896">Abhi koi order nahi.</li></ul>
+  <div class="row" style="margin-top:10px">
+    <button onclick="downloadCSV()" style="background:#555;color:#fff" aria-label="Orders ka CSV download karo">CSV download</button>
+    <button onclick="clearToday()" style="background:#444;color:#fff" aria-label="Aaj ka data saaf karo">Aaj ka data saaf karo</button>
+  </div>
+  <div id="waPanel">
+    <h2 style="font-size:15px">📤 Restaurant ko ye order WhatsApp pe jayega:</h2>
+    <div id="waMsg"></div>
+    <a class="wa-btn" id="waBtn" href="#" target="_blank" rel="noopener">WhatsApp par bhejo</a>
+    <div id="waWarn" style="font-size:13px;color:#f5b942;margin-top:8px;font-weight:700"></div>
+    <div style="font-size:12px;color:#cbb896;margin-top:8px">Demo hai — asal version me yeh Twilio / WhatsApp Business API se khud jayega.</div>
+  </div>
+</div>
+
+<p class="note">
+  <b>Test karne ka tareeqa:</b> "Call shuru karo" dabao, phir chips pe tap karo ya bol/likh ke jawab do.
+  Flow: salam → order (kai dishes ek sath bhi) → availability → upsell → naam/number/address → confirm (badalna bhi sakte ho) → WhatsApp + dashboard.<br>
+  <b>Test ye bhi karo:</b> "Karahi chahiye" (agent poochegi konsi wali) • "Pepperoni pizza" (available nahi) •
+  number <b>03001234567</b> (loyalty: Ahmed Bhai, 120 points) • 2 dafa "asdfgh" (manager fallback).<br>
+  <b>Urdu awaz ke liye:</b> Windows me Urdu language pack install karo (Microsoft Asad) — phir dropdown me Urdu awaz chuno.
+  Agent ki lines Urdu script me hain taake awaz sahi Urdu bole.
+</p>
+
+<script>
+// ================= CONFIG (NEW: sab rates/rules ek jagah — owner yahan badle) =================
+// NEW: deliveryCharge, freeDeliveryAbove, minOrder, opening hours, restaurant WhatsApp —
+// yeh sab CONFIG me hain, code me jagah jagah hardcode nahi.
+const CONFIG = {
+  restaurantName: "Dastarkhwan",
+  restaurantWA: "92XXXXXXXXXX", // NEW: USER DECIDE KARE — restaurant ka asli WhatsApp number (92 se shuru)
+  deliveryCharge: 150,          // USER DECIDE KARE — delivery charges
+  freeDeliveryAbove: 1500,      // USER DECIDE KARE — is total se upar delivery free
+  minOrder: 500,                // USER DECIDE KARE — minimum order
+  openHour: 11, openMin: 0,     // USER DECIDE KARE — khulne ka time 11:00
+  closeHour: 23, closeMin: 30,  // USER DECIDE KARE — band hone ka time 23:30
+  open24h: true,                // USER DECIDE KARE — true ho to 24 ghante khula, openHour/closeHour ignore
+  deliveryMinutes: 45,
+  loyaltyPerOrder: 20
+};
+
+// ================= MENU — OWNER SECTION (FIX: saaf section, price/availability yahan badlein) =================
+// FIX: price/availability badalni ho to sirf is list me badlein. available:false wali dish "Khatam" hai.
+// FIX: PRICE CHECK — "Beef Nihari (Plate)" 650 vs "Beef Nihari + 2 Naan (Nashta Set)" 550:
+// Nashta set sasta hai, owner se confirm karein. Price khud mat badalna, sirf comment flag hai.
+// FIX: "Meethi Lassi" hata di (Sweet Lassi jaisi hi thi, dono 180) — "meethi lassi" bolne par SYNONYMS se Sweet Lassi milegi.
+// URDU_MAP me koi lafz nahi badla — dedupe sirf SYNONYMS layer se hai, taake map bilkul waisa hi rahe.
+const MENU = [
+  { name: "Chicken Tikka", price: 280, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Seekh Kabab (4 pc)", price: 450, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Chicken Malai Boti", price: 520, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Chicken Behari Boti", price: 480, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Chicken Reshmi Kabab", price: 550, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Tandoori Wings (8 pc)", price: 650, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Grilled Fish Tikka", price: 750, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Beef Seekh Kabab (4 pc)", price: 550, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Chicken Tandoori (Full)", price: 950, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "BBQ Mix Platter", price: 1450, cat: "Sigri Special — Coal Grilled", available: true },
+  { name: "Chicken Karahi (Half)", price: 850, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Mutton Karahi (Half)", price: 1450, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Daal Fry + 2 Naan", price: 350, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Palak Gosht", price: 550, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Butter Chicken", price: 750, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Beef Nihari (Plate)", price: 650, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Haleem", price: 450, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Chicken Qorma", price: 700, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "White Karahi", price: 950, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Daal Makhani", price: 400, cat: "Wok Fresh — Desi Tadka", available: true },
+  { name: "Chicken Biryani", price: 320, cat: "Dum Style — Full Masala", available: true },
+  { name: "Beef Biryani", price: 380, cat: "Dum Style — Full Masala", available: true },
+  { name: "Chicken Pulao", price: 300, cat: "Dum Style — Full Masala", available: true },
+  { name: "Sindhi Biryani", price: 350, cat: "Dum Style — Full Masala", available: true },
+  { name: "Bombay Biryani", price: 380, cat: "Dum Style — Full Masala", available: true },
+  { name: "Chicken Tikka Biryani", price: 420, cat: "Dum Style — Full Masala", available: true },
+  { name: "Mutton Pulao", price: 550, cat: "Dum Style — Full Masala", available: true },
+  { name: "Kabuli Pulao", price: 500, cat: "Dum Style — Full Masala", available: true },
+  { name: "Vegetable Biryani", price: 280, cat: "Dum Style — Full Masala", available: true },
+  { name: "Egg Biryani", price: 300, cat: "Dum Style — Full Masala", available: true },
+  { name: "Chicken Zinger Burger", price: 450, cat: "Crispy & Loaded", available: true },
+  { name: "Chicken Shawarma Platter", price: 420, cat: "Crispy & Loaded", available: true },
+  { name: "Loaded Fries", price: 500, cat: "Crispy & Loaded", available: true },
+  { name: "Beef Smash Burger", price: 650, cat: "Crispy & Loaded", available: true },
+  { name: "Club Sandwich", price: 550, cat: "Crispy & Loaded", available: true },
+  { name: "Crispy Broast (3 pc)", price: 550, cat: "Crispy & Loaded", available: true },
+  { name: "Chicken Nuggets (9 pc)", price: 450, cat: "Crispy & Loaded", available: true },
+  { name: "Masala Fries", price: 350, cat: "Crispy & Loaded", available: true },
+  { name: "Buffalo Wings (8 pc)", price: 700, cat: "Crispy & Loaded", available: true },
+  { name: "Fish & Chips", price: 750, cat: "Crispy & Loaded", available: true },
+  { name: "Chicken Chow Mein", price: 550, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Chicken Manchurian", price: 650, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Egg Fried Rice", price: 450, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Kung Pao Chicken", price: 700, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Sweet & Sour Chicken", price: 650, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Chilli Chicken Dry", price: 700, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Vegetable Chow Mein", price: 450, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Chicken Corn Soup", price: 350, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Hot & Sour Soup", price: 400, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Spring Rolls (4 pc)", price: 400, cat: "Wok Fresh — Indo Chinese", available: true },
+  { name: "Chicken Tikka Pizza (13\")", price: 1450, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Tandoori Naan Pizza", price: 1350, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Chicken Fajita Pizza", price: 1450, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Pepperoni Pizza", price: 1650, cat: "Wood-Fired — Extra Cheese", available: false },
+  { name: "BBQ Chicken Pizza", price: 1450, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Cheese Lovers Pizza", price: 1350, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Veggie Supreme Pizza", price: 1250, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Chicken Supreme Pizza", price: 1550, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Malai Boti Pizza", price: 1550, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Garlic Bread (4 pc)", price: 450, cat: "Wood-Fired — Extra Cheese", available: true },
+  { name: "Halwa Puri Set", price: 350, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Beef Nihari + 2 Naan (Nashta Set)", price: 550, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Siri Paye", price: 600, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Aloo Paratha (2 pc)", price: 250, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Anda Paratha", price: 200, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Desi Masala Omelette", price: 220, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Doodh Patti", price: 120, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "French Toast (4 pc)", price: 300, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Qeema Paratha", price: 350, cat: "Desi Nashta — Fresh & Hot", available: true },
+  { name: "Mango Lassi", price: 200, cat: "Fresh & Chilled", available: true },
+  { name: "Kashmiri Chai", price: 180, cat: "Fresh & Chilled", available: true },
+  { name: "Fresh Lime Soda", price: 150, cat: "Fresh & Chilled", available: true },
+  { name: "Cold Coffee", price: 350, cat: "Fresh & Chilled", available: true },
+  { name: "Fresh Orange Juice", price: 250, cat: "Fresh & Chilled", available: true },
+  { name: "Mint Margarita", price: 220, cat: "Fresh & Chilled", available: true },
+  { name: "Sweet Lassi", price: 180, cat: "Fresh & Chilled", available: true },
+  { name: "Pineapple Juice", price: 250, cat: "Fresh & Chilled", available: true },
+  { name: "Doodh Soda", price: 200, cat: "Fresh & Chilled", available: true },
+  { name: "Strawberry Shake", price: 350, cat: "Fresh & Chilled", available: true },
+  { name: "Gulab Jamun (2 pc)", price: 150, cat: "Meetha — Shahi Style", available: true },
+  { name: "Shahi Kheer", price: 200, cat: "Meetha — Shahi Style", available: true },
+  { name: "Shahi Tukray", price: 350, cat: "Meetha — Shahi Style", available: true },
+  { name: "Kulfi Falooda", price: 400, cat: "Meetha — Shahi Style", available: true },
+  { name: "Rasmalai (2 pc)", price: 300, cat: "Meetha — Shahi Style", available: true },
+  { name: "Gajar Ka Halwa", price: 350, cat: "Meetha — Shahi Style", available: true },
+  { name: "Brownie + Ice Cream", price: 550, cat: "Meetha — Shahi Style", available: true },
+  { name: "Firni", price: 250, cat: "Meetha — Shahi Style", available: true },
+  { name: "Jalebi (250g)", price: 300, cat: "Meetha — Shahi Style", available: true },
+  { name: "Ice Cream Sundae", price: 450, cat: "Meetha — Shahi Style", available: true },
+  { name: "Chicken Paratha Roll", price: 350, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Beef Bihari Roll", price: 450, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Malai Boti Roll", price: 450, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Seekh Kabab Roll", price: 400, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Crispy Chicken Wrap", price: 450, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Falafel Wrap", price: 400, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Chicken Tikka Wrap", price: 400, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Chicken Cheese Roll", price: 450, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Chicken Shawarma", price: 350, cat: "Rolled Fresh — To Go", available: true },
+  { name: "Butter Chicken Roll", price: 450, cat: "Rolled Fresh — To Go", available: true }
+];
+const CAT_LABEL = {"Sigri Special — Coal Grilled":"BBQ","Wok Fresh — Desi Tadka":"Desi","Dum Style — Full Masala":"Biryani","Crispy & Loaded":"Crispy","Wok Fresh — Indo Chinese":"Chinese","Wood-Fired — Extra Cheese":"Pizza","Desi Nashta — Fresh & Hot":"Nashta","Fresh & Chilled":"Drink","Meetha — Shahi Style":"Meetha","Rolled Fresh — To Go":"Roll"};
+const CAT_BY_LABEL = {};
+for (const k in CAT_LABEL) CAT_BY_LABEL[CAT_LABEL[k].toLowerCase()] = k;
+const UPSELL_DISH = MENU.find(d => d.name === "Mint Margarita") || MENU[0];
+// FIX: SYNONYMS — ek hi cheez ke do naam (meethi lassi = sweet lassi, nashta wali)
+const SYNONYMS = { "meethi lassi": "sweet lassi" };
+
+// ---------- URDU -> ROMAN transliteration (v1 wala map, lafz wahi — sirf matching badli hai) ----------
+// FIX: naye 3 function lafz (ke/saath/aur) — Urdu jumle bhi "ke saath"/"aur" par toot-te hain.
+// Yeh naye entries hain, purani kisi entry me badlav nahi.
+const URDU_MAP = [
+  ["کے", "ke"], ["ساتھ", "saath"], ["اور", "aur"],
+  ["گلاب جامن", "gulab jamun"], ["چکن تکہ", "chicken tikka"], ["چکن قورمہ", "chicken qorma"],
+  ["گرلڈ فش", "grilled fish"], ["سیخ کباب", "seekh kabab"], ["ملائی بوٹی", "malai boti"],
+  ["بہاری بوٹی", "behari boti"], ["ریشمی کباب", "reshmi kabab"], ["تندوری ونگز", "tandoori wings"],
+  ["بیف سیخ", "beef seekh"], ["چکن تندوری", "chicken tandoori"], ["مکس پلیٹر", "mix platter"],
+  ["چکن کڑاہی", "chicken karahi"], ["مٹن کڑاہی", "mutton karahi"], ["دال فرائی", "daal fry"],
+  ["پالک گوشت", "palak gosht"], ["بٹر چکن", "butter chicken"], ["بیف نہاری", "beef nihari"],
+  ["حلیم", "haleem"], ["وائٹ کڑاہی", "white karahi"], ["دال مکھنی", "daal makhani"],
+  ["چکن بریانی", "chicken biryani"], ["بیف بریانی", "beef biryani"], ["چکن پلاؤ", "chicken pulao"],
+  ["سندھی بریانی", "sindhi biryani"], ["بمبئی بریانی", "bombay biryani"], ["مٹن پلاؤ", "mutton pulao"],
+  ["کابلی پلاؤ", "kabuli pulao"], ["سبزی بریانی", "vegetable biryani"], ["انڈا بریانی", "egg biryani"],
+  ["زنگر برگر", "zinger burger"], ["شوارما پلیٹر", "shawarma platter"], ["لوڈڈ فرائیز", "loaded fries"],
+  ["بیف سمیش برگر", "beef smash burger"], ["کلب سینڈوچ", "club sandwich"], ["کریسپی بروسٹ", "crispy broast"],
+  ["چکن نگٹس", "chicken nuggets"], ["مصالحہ فرائیز", "masala fries"], ["بفیلو ونگز", "buffalo wings"],
+  ["فش اینڈ چپس", "fish chips"], ["چکن چاؤمن", "chicken chow mein"], ["چکن منچورین", "chicken manchurian"],
+  ["انڈا فرائیڈ رائس", "egg fried rice"], ["کنگ پاؤ چکن", "kung pao chicken"], ["سویٹ اینڈ ساور", "sweet sour"],
+  ["چلی چکن", "chilli chicken"], ["سبزی چاؤمن", "vegetable chow mein"], ["چکن کارن سوپ", "chicken corn soup"],
+  ["ہاٹ اینڈ ساور سوپ", "hot sour soup"], ["سپرنگ رولز", "spring rolls"],
+  ["تندوری نان پیزا", "tandoori naan pizza"], ["چکن فجیٹا پیزا", "chicken fajita pizza"],
+  ["پیپرونی پیزا", "pepperoni pizza"], ["باربی کیو چکن پیزا", "bbq chicken pizza"],
+  ["چیز لورز پیزا", "cheese lovers pizza"], ["ویجی سپریم پیزا", "veggie supreme pizza"],
+  ["چکن سپریم پیزا", "chicken supreme pizza"], ["ملائی بوٹی پیزا", "malai boti pizza"],
+  ["گارلک بریڈ", "garlic bread"], ["حلوہ پوری", "halwa puri"], ["سری پائے", "siri paye"],
+  ["آلو پراٹھا", "aloo paratha"], ["انڈا پراٹھا", "anda paratha"], ["دیسی مصالحہ آملیٹ", "desi masala omelette"],
+  ["دودھ پتی", "doodh patti"], ["میٹھی لسی", "meethi lassi"], ["فرنچ ٹوسٹ", "french toast"],
+  ["قیمہ پراٹھا", "qeema paratha"], ["مینگو لسی", "mango lassi"], ["کشمیری چائے", "kashmiri chai"],
+  ["فریش لائم سوڈا", "fresh lime soda"], ["کولڈ کافی", "cold coffee"], ["فریش اورنج جوس", "fresh orange juice"],
+  ["منٹ مارگریٹا", "mint margarita"], ["سویٹ لسی", "sweet lassi"], ["پائن ایپل جوس", "pineapple juice"],
+  ["دودھ سوڈا", "doodh soda"], ["اسٹرابیری شیک", "strawberry shake"],
+  ["شاہی کھیر", "shahi kheer"], ["شاہی ٹکڑے", "shahi tukray"], ["کلفی فالودہ", "kulfi falooda"],
+  ["رس ملائی", "rasmalai"], ["گاجر کا حلوہ", "gajar ka halwa"], ["براؤنی", "brownie"],
+  ["فرنی", "firni"], ["جلیبی", "jalebi"], ["آئس کریم سنڈے", "ice cream sundae"],
+  ["چکن پراٹھا رول", "chicken paratha roll"], ["بیف بہاری رول", "beef bihari roll"],
+  ["ملائی بوٹی رول", "malai boti roll"], ["سیخ کباب رول", "seekh kabab roll"],
+  ["کریسپی چکن ریپ", "crispy chicken wrap"], ["فلافل ریپ", "falafel wrap"],
+  ["چکن تکہ ریپ", "chicken tikka wrap"], ["چکن چیز رول", "chicken cheese roll"],
+  ["چکن شوارما", "chicken shawarma"], ["بٹر چکن رول", "butter chicken roll"],
+  ["چکن", "chicken"], ["تکہ", "tikka"], ["کڑاہی", "karahi"], ["بریانی", "biryani"],
+  ["پلاؤ", "pulao"], ["کباب", "kabab"], ["سیخ", "seekh"], ["ملائی", "malai"],
+  ["بوٹی", "boti"], ["بہاری", "behari"], ["ریشمی", "reshmi"], ["تندوری", "tandoori"],
+  ["مچھلی", "fish"], ["بیف", "beef"], ["مٹن", "mutton"], ["دال", "daal"],
+  ["پالک", "palak"], ["گوشت", "gosht"], ["مکھنی", "makhani"], ["قورمہ", "qorma"],
+  ["نہاری", "nihari"], ["پیزا", "pizza"], ["چیز", "cheese"], ["پیپرونی", "pepperoni"],
+  ["فجیٹا", "fajita"], ["نان", "naan"], ["پراٹھا", "paratha"], ["رول", "roll"],
+  ["شوارما", "shawarma"], ["برگر", "burger"], ["سینڈوچ", "sandwich"], ["فرائیز", "fries"],
+  ["ونگز", "wings"], ["سوپ", "soup"], ["رائس", "rice"], ["چاؤمن", "chow mein"],
+  ["منچورین", "manchurian"], ["کھیر", "kheer"], ["جامن", "jamun"], ["جلیبی", "jalebi"],
+  ["فالودہ", "falooda"], ["قلفی", "kulfi"], ["لسی", "lassi"], ["چائے", "chai"],
+  ["کافی", "coffee"], ["جوس", "juice"], ["شیک", "shake"], ["لیموں", "lime"],
+  ["پودینہ", "mint"], ["آم", "mango"], ["انڈا", "egg"], ["آلو", "aloo"],
+  ["سبزی", "vegetable"], ["قیمہ", "qeema"], ["پائے", "paye"], ["سری", "siri"],
+  ["حلوہ", "halwa"], ["پوری", "puri"], ["دودھ", "doodh"], ["پتی", "patti"],
+  ["میٹھی", "meethi"], ["ٹوسٹ", "toast"], ["آملیٹ", "omelette"], ["مصالحہ", "masala"],
+  ["کریسپی", "crispy"], ["بروسٹ", "broast"], ["نگٹس", "nuggets"], ["بفیلو", "buffalo"],
+  ["چپس", "chips"], ["لوڈڈ", "loaded"], ["زنگر", "zinger"], ["سمیش", "smash"],
+  ["کلب", "club"], ["گارلک", "garlic"], ["بریڈ", "bread"], ["سپریم", "supreme"],
+  ["ویجی", "veggie"], ["باربی کیو", "bbq"], ["مکس", "mix"], ["پلیٹر", "platter"],
+  ["ایک", "ek"], ["دو", "do"], ["تین", "teen"], ["چار", "chaar"], ["پانچ", "paanch"],
+  ["چھ", "cheh"], ["سات", "saat"], ["آٹھ", "aath"], ["نو", "nau"], ["دس", "dus"],
+  ["سمجھ نہیں", "samajh nahi"], ["پتہ نہیں", "pata nahi"], ["معلوم نہیں", "maloom nahi"],
+  ["نہیں آیا", "nahi aya"], ["سمجھ", "samajh"], ["آیا", "aya"], ["پتہ", "pata"], ["معلوم", "maloom"],
+  ["ہاں", "haan"], ["نہیں", "nahi"], ["جی", "ji"]
+];
+// FIX 1: transliteration me chhote lafz sirf poore lafz par match hon.
+// Phrase (space wale) pehle split/join se, phir single words sirf poore token par.
+// Is se "ساتھ" ke andar "سات" nahi kat-ta, is liye "کے ساتھ" se qty 7 nahi banti.
+function transliterate(text) {
+  let t = text;
+  const pairs = URDU_MAP.slice().sort((a, b) => b[0].length - a[0].length);
+  for (const pair of pairs) { if (pair[0].includes(" ")) t = t.split(pair[0]).join(pair[1]); }
+  const single = {};
+  for (const pair of pairs) { if (!pair[0].includes(" ")) single[pair[0]] = pair[1]; }
+  t = t.split(/\s+/).map(tok => {
+    const pre = (tok.match(/^[،۔!؟.,;:]+/) || [""])[0];
+    const post = (tok.match(/[،۔!؟.,;:]+$/) || [""])[0];
+    const core = tok.slice(pre.length, tok.length - post.length);
+    return pre + (single[core] || core) + post;
+  }).join(" ");
+  return t;
+}
+
+// ---------- PURE LOGIC ----------
+// FIX 4: esc() — dashboard/cart/detail me user text hamesha escape ho (XSS se bachao)
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+// NEW: localStorage — har read/write try/catch me, storage band ho to bhi page chale
+const store = {
+  get(k, fb) { try { const v = localStorage.getItem(k); return v == null ? fb : JSON.parse(v); } catch (e) { return fb; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+function norm(s) {
+  let t = transliterate(s).toLowerCase().replace(/\([^)]*\)/g, "");
+  for (const k in SYNONYMS) t = t.split(k).join(SYNONYMS[k]);
+  return t.replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+}
+function dishWords(d) { return norm(d.name).split(" ").filter(Boolean); }
+function findDishes(text) {
+  const t = norm(text);
+  if (!t) return [];
+  const words = t.split(" ").filter(Boolean);
+  const full = MENU.filter(d => { const dw = dishWords(d); return dw.length && dw.every(w => words.includes(w)); });
+  if (full.length) {
+    full.sort((a, b) => dishWords(b).length - dishWords(a).length);
+    const maxLen = dishWords(full[0]).length;
+    return full.filter(d => dishWords(d).length === maxLen);
+  }
+  const partial = MENU.filter(d => { const dw = dishWords(d).filter(w => w.length > 2); return dw.some(w => words.includes(w)); });
+  // FIX: partial-match limit 8 se 12 (pizza ke 9 matches ke liye)
+  if (partial.length > 12) return [];
+  return partial;
+}
+function clarifyFilter(cands, text) {
+  const t = norm(text);
+  const exact = cands.filter(d => t.includes(norm(d.name)));
+  if (exact.length === 1) return { pick: exact[0] };
+  if (exact.length > 1) return { list: exact };
+  const words = t.split(" ").filter(w => w.length > 2);
+  const scored = cands.filter(d => words.some(w => norm(d.name).includes(w)));
+  if (scored.length === 1) return { pick: scored[0] };
+  if (scored.length > 1) return { list: scored };
+  return { list: cands };
+}
+function dishLabel(d, cands) {
+  const common = cands.map(x => dishWords(x));
+  const shared = common.reduce((a, b) => a.filter(w => b.includes(w)));
+  const rest = dishWords(d).filter(w => !shared.includes(w));
+  if (rest.length) return rest.join(" ");
+  return CAT_LABEL[d.cat] || d.cat;
+}
+// FIX 2: parseQty — "kar do / de do / dedo" command hai, tadad nahi
+function parseQty(text) {
+  // FIX 2: "kar do / de do / dedo" yahan bhi ignore ho (sirf qtyForSegment me nahi)
+  const words = stripCommandTail(norm(text).split(" ").filter(Boolean));
+  const t = words.join(" ");
+  const m = t.match(/\b(\d+)\b/);
+  if (m) { const n = parseInt(m[1], 10); return n <= 20 ? n : null; }
+  const map = { ek: 1, do: 2, teen: 3, chaar: 4, paanch: 5, cheh: 6, saat: 7, aath: 8, nau: 9, dus: 10 };
+  for (const w in map) { if (words.includes(w)) return map[w]; }
+  return null;
+}
+// FIX 2 (continued): dish ke naam ke number (jaise "2 Naan") aur command tail hata kar qty nikalo
+function stripCommandTail(words) {
+  const w = words.slice();
+  if (w.length >= 2 && ((w[w.length-2] === "de" && w[w.length-1] === "do") || (w[w.length-2] === "kar" && w[w.length-1] === "do"))) w.splice(w.length-2, 2);
+  else if (w.length >= 1 && w[w.length-1] === "dedo") w.pop();
+  return w;
+}
+function qtyForSegment(segText, dish) {
+  let words = norm(segText).split(" ").filter(Boolean);
+  if (dish) {
+    const dw = dishWords(dish);
+    words = words.filter(w => { const i = dw.indexOf(w); if (i >= 0) { dw.splice(i, 1); return false; } return true; });
+  }
+  words = stripCommandTail(words);
+  return parseQty(words.join(" "));
+}
+// FIX 3: parseYesNo — negative pehle ("ji nahi" = no, "ji" akela = yes), phir positive
+function parseYesNo(text) {
+  const t = norm(text);
+  if (/\b(samajh nahi|nahi samajh|nahi aya|pata nahi|maloom nahi)\b/.test(t)) return null;
+  if (/\b(ji nahi|nahi|no|na|mat|cancel|bas)\b/.test(t)) return "no";
+  if (/\b(haan|han|yes|ji|theek|bilkul|zaroor|ok|okay|confirm|add)\b/.test(t)) return "yes";
+  return null;
+}
+// FIX 5: naam saaf — shuru se prefix ("میرا نام"/"my name is"/"mera naam"/"main"/"mai") aur aakhir se "ہے"/"hai/hun/hoon" hatayen; naam max 40 harf
+function cleanName(text) {
+  let n = text.trim().replace(/^\s*(میرا نام|my name is|mera naam|main|mai)\s+/i, "").replace(/\s+(ہے|hai|hun|hoon)\s*$/i, "").trim();
+  const out = n || text.trim();
+  return out.slice(0, 40).trim();
+}
+// FIX 5 (continued): phone validation — sirf 10 se 13 hindsay qabool
+function validPhone(text) {
+  const digits = String(text).replace(/\D/g, "");
+  if (digits.length >= 10 && digits.length <= 13) return digits;
+  return null;
+}
+// NEW: cart totals — CONFIG se (delivery charge / free limit)
+function calcTotals(items) {
+  let subtotal = 0;
+  items.forEach(it => { subtotal += it.dish.price * it.qty; });
+  const delivery = (subtotal === 0 || subtotal >= CONFIG.freeDeliveryAbove) ? 0 : CONFIG.deliveryCharge;
+  return { subtotal: subtotal, delivery: delivery, total: subtotal + delivery };
+}
+// NEW: WhatsApp message — cart items + totals + details
+function buildWhatsAppMsg(order, totals) {
+  const lines = [];
+  lines.push("🍽️ NAYA ORDER — " + CONFIG.restaurantName);
+  lines.push("");
+  lines.push("👤 Naam: " + order.name);
+  lines.push("📱 Number: " + order.phone);
+  lines.push("📍 Address: " + order.address);
+  lines.push("");
+  order.items.forEach(it => { lines.push("🧾 " + it.dish.name + " × " + it.qty + " — Rs. " + (it.dish.price * it.qty)); });
+  lines.push("");
+  lines.push("💰 Subtotal: Rs. " + totals.subtotal);
+  lines.push("🚚 Delivery: Rs. " + totals.delivery + (totals.delivery === 0 ? " (FREE)" : ""));
+  lines.push("💰 Total: Rs. " + totals.total + " (Cash on Delivery)");
+  lines.push("⏰ Delivery: " + CONFIG.deliveryMinutes + " minute me");
+  if (order.loyalty) lines.push("⭐ Loyalty: " + order.loyalty.name + " (" + order.loyalty.points + " points)");
+  return lines.join("\n");
+}
+const LOYALTY_BASE = { "03001234567": { name: "Ahmed Bhai", points: 120 }, "3001234567": { name: "Ahmed Bhai", points: 120 }, "923001234567": { name: "Ahmed Bhai", points: 120 } };
+function loyaltyLookup(phone) {
+  const digits = String(phone).replace(/\D/g, "");
+  const db = store.get("dw_loyalty", {});
+  if (db[phone]) return db[phone];
+  if (db[digits]) return db[digits];
+  if (LOYALTY_BASE[phone]) return LOYALTY_BASE[phone];
+  if (LOYALTY_BASE[digits]) return LOYALTY_BASE[digits];
+  return null;
+}
+// NEW: CSV builder (Blob wali download alag function me hai)
+function buildCSV(orders) {
+  const rows = [["Order No", "Time", "Name", "Phone", "Address", "Items", "Total", "Status"]];
+  orders.forEach(o => {
+    const items = o.items.map(it => it.dish.name + " x" + it.qty).join(" | ");
+    rows.push([o.no, o.time, o.name, o.phone, o.address, items, o.total, o.status]);
+  });
+  return rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
+}
+// NEW: top 3 dishes (qty ke hisab se)
+function topDishes(orders) {
+  const m = {};
+  orders.forEach(o => { o.items.forEach(it => { m[it.dish.name] = (m[it.dish.name] || 0) + it.qty; }); });
+  return Object.keys(m).map(k => ({ name: k, qty: m[k] })).sort((a, b) => b.qty - a.qty).slice(0, 3);
+}
+// NEW: agent lines — [Urdu script, Roman] (Roman sirf tab dikhta hai jab Urdu awaz na ho)
+const L = {
+  greet: ["السلام علیکم! دسترخوان میں خوش آمدید، میں سارہ ہوں۔ آج کیا آرڈر کرنا چاہیں گے؟", "Assalam-o-Alaikum! Dastarkhwan me khush amdeed, main Sara hun. Aaj kya order karna chahenge?"],
+  greetingReply: ["وعلیکم السلام! بتائیں کیا آرڈر کرنا ہے؟", "Walaikum Assalam! Batayen kya order karna hai?"],
+  askMore: ["اور کچھ چاہیے؟", "Aur kuch chahiye?"],
+  moreAsk: ["اور کیا چاہیے؟", "Aur kya chahiye?"],
+  askName: ["اب آپ کا نام بتائیں؟", "Ab aap ka naam batayen?"],
+  askPhone: ["اب اپنا موبائل نمبر بتائیں؟", "Ab apna mobile number batayen?"],
+  askAddress: ["اب ڈیلیوری ایڈریس بتائیں؟", "Ab delivery address batayen?"],
+  closed: ["معذرت، ابھی ہم بند ہیں۔ ہم صبح 11 بجے سے رات 11:30 تک کھلے ہوتے ہیں۔", "Maaf kijiye, abhi hum band hain. Hum subah 11 baje se raat 11:30 tak khule hote hain."],
+  handoff: ["معذرت، میں سمجھ نہیں پائی۔ میں آپ کو مینیجر سے ملواتی ہوں — ایک منٹ، لائن پر رہیے۔", "Maaf kijiye, main samajh nahi payi. Main aap ko manager se milwati hun — ek minute, line par rahiye."],
+  cancelLine: ["ٹھیک ہے، آرڈر کینسل کر دیا ہے۔ شکریہ، اللہ حافظ!", "Theek hai, order cancel kar diya hai. Shukriya, Allah Hafiz!"],
+  byeLine: ["اللہ حافظ! پھر ملیں گے۔", "Allah Hafiz! Phir milenge."],
+  thanksLine: ["شکریہ!", "Shukriya!"],
+  menuCats: ["ہمارے پاس یہ کیٹیگریز ہیں: BBQ، Desi، Biryani، Crispy، Chinese، Pizza، Nashta، Drink، Meetha اور Roll۔ کون سی دیکھنی ہے؟", "Hamare paas ye categories hain: BBQ, Desi, Biryani, Crispy, Chinese, Pizza, Nashta, Drink, Meetha aur Roll. Konsi dekhni hai?"],
+  retryDish: ["معذرت، کون سی ڈش چاہیے؟ ذرا پورا نام بتائیں — جیسے چکن تکہ بریانی۔", "Maaf kijiye, konsi dish chahiye? Zara poora naam batayen — jaise chicken tikka biryani."],
+  retryQty: ["کتنی پلیٹ چاہیے؟ ایک، دو یا تین؟", "Kitni plate chahiye? Ek, do ya teen?"],
+  askQty: ["کتنی پلیٹ چاہیے؟", "Kitni plate chahiye?"],
+  askEditWhat: ["کیا بدلنا ہے — نام، ایڈریس یا آرڈر؟", "Kya badalna hai — naam, address ya order?"],
+  retryPhone: ["نمبر 10 سے 13 ہندسوں کا ہونا چاہیے، دوبارہ بتائیں؟", "Number 10 se 13 hindson ka hona chahiye, dobara batayen?"],
+  retryAddress: ["پورا ایڈریس بتائیں — گلی، علاقہ اور شہر۔", "Poora address batayen — gali, ilaqa aur sheher."]
+};
+function minOrderLine() {
+  return ["معذرت، کم سے کم آرڈر " + CONFIG.minOrder + " روپے کا ہے۔ کچھ اور ایڈ کریں۔", "Maaf kijiye, minimum order " + CONFIG.minOrder + " rupay ka hai. Kuch aur add karein."];
+}
+function deliveryTimeLine() {
+  return ["ڈیلیوری میں تقریباً " + CONFIG.deliveryMinutes + " منٹ لگتے ہیں۔", "Delivery me taqreeban " + CONFIG.deliveryMinutes + " minute lagte hain."];
+}
+function deliveryChargeLine() {
+  return ["ڈیلیوری چارجز " + CONFIG.deliveryCharge + " روپے ہیں، " + CONFIG.freeDeliveryAbove + " روپے سے اوپر کے آرڈر پر ڈیلیوری FREE ہے۔", "Delivery charges " + CONFIG.deliveryCharge + " rupay hain, " + CONFIG.freeDeliveryAbove + " rupay se upar ke order par delivery FREE hai."];
+}
+function upsellLine() {
+  return ["اس کے ساتھ " + UPSELL_DISH.name + " ایڈ کر دوں؟ صرف " + UPSELL_DISH.price + " روپے۔", "Is ke saath " + UPSELL_DISH.name + " add kar dun? Sirf " + UPSELL_DISH.price + " rupay."];
+}
+function clarifyLine(cands, offset) {
+  const batch = cands.slice(offset, offset + 5);
+  const labels = batch.map(d => dishLabel(d, cands));
+  let ur = "کون سی والی چاہیے — " + labels.join("، ") + "؟";
+  let ro = "Konsi wali chahiye — " + labels.join(", ") + "?";
+  if (cands.length > offset + 5) { ur += " اور بھی ہیں، کیا سننا چاہیں گے؟"; ro += " Aur bhi hain, kya sunna chahenge?"; }
+  return [ur, ro];
+}
+function catDishesLine(cat, dishes) {
+  const parts = dishes.map(d => d.name + " " + d.price + " روپے");
+  const partsRo = dishes.map(d => d.name + " " + d.price + " rupay");
+  return [CAT_LABEL[cat] + " میں یہ ڈشز ہیں: " + parts.join("، ") + "۔", CAT_LABEL[cat] + " me ye dishes hain: " + partsRo.join(", ") + "."];
+}
+function priceLine(dish) {
+  return [dish.name + " کی قیمت " + dish.price + " روپے ہے۔", dish.name + " ki price " + dish.price + " rupay hai."];
+}
+function unavailableLine(dish, alt) {
+  if (alt) return ["معذرت، " + dish.name + " آج دستیاب نہیں ہے۔ " + alt.name + " ٹرائی کریں؟ وہ دستیاب ہے۔", "Maaf kijiye, " + dish.name + " aaj dastiyab nahi hai. " + alt.name + " try karein? Woh dastiyab hai."];
+  return ["معذرت، " + dish.name + " آج دستیاب نہیں ہے۔ کوئی اور ڈش بتائیں۔", "Maaf kijiye, " + dish.name + " aaj dastiyab nahi hai. Koi aur dish batayen."];
+}
+function loyaltyLine(loyal) {
+  return ["خوش آمدید واپس، " + loyal.name + "! آپ کے " + loyal.points + " لائلٹی پوائنٹس ہیں۔ اس آرڈر پر " + CONFIG.loyaltyPerOrder + " پوائنٹس اور ملیں گے۔", "Khush amdeed wapas, " + loyal.name + "! Aap ke " + loyal.points + " loyalty points hain. Is order par " + CONFIG.loyaltyPerOrder + " points aur milenge."];
+}
+function recapLine(order, totals) {
+  const itemsUr = order.items.map(it => it.dish.name + " " + it.qty + " پلیٹ — " + (it.dish.price * it.qty) + " روپے").join("، ");
+  const itemsRo = order.items.map(it => it.dish.name + " " + it.qty + " plate — " + (it.dish.price * it.qty) + " rupay").join(", ");
+  const ur = "آرڈر یہ ہے: " + itemsUr + "۔ سب ٹوٹل " + totals.subtotal + " روپے، ڈیلیوری " + totals.delivery + " روپے، کل ٹوٹل " + totals.total + " روپے، کیش آن ڈیلیوری، " + CONFIG.deliveryMinutes + " منٹ میں پہنچ جائے گا۔ نام: " + order.name + "، نمبر: " + order.phone + "، ایڈریس: " + order.address + "۔ کنفرم کر دوں؟";
+  const ro = "Order ye hai: " + itemsRo + ". Subtotal " + totals.subtotal + " rupay, delivery " + totals.delivery + " rupay, total " + totals.total + " rupay, cash on delivery, " + CONFIG.deliveryMinutes + " minute me pahunch jayega. Naam: " + order.name + ", number: " + order.phone + ", address: " + order.address + ". Confirm kar dun?";
+  return [ur, ro];
+}
+function doneLine(no) {
+  return ["آرڈر کنفرم ہو گیا ہے! آرڈر نمبر " + no + "۔ " + CONFIG.deliveryMinutes + " منٹ میں پہنچ جائے گا۔ آرڈر ریسٹورنٹ کو بھیج دیا ہے۔ شکریہ، اللہ حافظ!", "Order confirm ho gaya hai! Order number " + no + ". " + CONFIG.deliveryMinutes + " minute me pahunch jayega. Order restaurant ko bhej diya hai. Shukriya, Allah Hafiz!"];
+}
+function totalLine(totals) {
+  return ["ابھی آپ کا ٹوٹل " + totals.total + " روپے ہے (سب ٹوٹل " + totals.subtotal + " + ڈیلیوری " + totals.delivery + ")۔", "Abhi aap ka total " + totals.total + " rupay hai (subtotal " + totals.subtotal + " + delivery " + totals.delivery + ")."];
+}
+function cartSummaryLine(items) {
+  if (!items.length) return ["کارٹ ابھی خالی ہے۔", "Cart abhi khali hai."];
+  const parts = items.map(it => it.dish.name + " " + it.qty + " پلیٹ");
+  const partsRo = items.map(it => it.dish.name + " " + it.qty + " plate");
+  return ["کارٹ میں ہے: " + parts.join("، ") + "۔", "Cart me hai: " + partsRo.join(", ") + "."];
+}
+// ---------- STATE ----------
+const TYPING_MS = 750;
+let state = "idle";
+let order = { items: [] };
+let candidates = [];
+let clarifyOffset = 0;
+let pendingSegments = [];
+let failCount = 0;
+let ordersToday = store.get("dw_orders", []);
+let salesTotal = store.get("dw_sales", 0);
+let orderCounter = store.get("dw_counter", 100);
+let listening = false, speaking = false, rec = null, micBlocked = false;
+let noUrVoice = false;
+let menuMode = false;
+let returnToConfirm = false;
+let speakSeq = 0;
+const SR = (typeof window !== "undefined") ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+
+const chatEl = document.getElementById("chat");
+const statusEl = document.getElementById("status");
+const typingEl = document.getElementById("typing");
+
+function addMsg(text, who, small) {
+  const d = document.createElement("div");
+  d.className = "msg " + who;
+  d.dir = "auto";
+  d.textContent = (who === "agent" ? "Sara: " : who === "user" ? "Aap: " : "") + text;
+  if (small) {
+    const s = document.createElement("small");
+    s.textContent = small;
+    d.appendChild(s);
+  }
+  chatEl.appendChild(d);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+function showTyping() { if (typingEl) typingEl.style.display = "block"; }
+function hideTyping() { if (typingEl) typingEl.style.display = "none"; }
+// FIX: speakId guard — purani speak ka callback nayi speak ko cancel nahi karta
+function speak(ur, ro) {
+  const mySeq = ++speakSeq;
+  showTyping();
+  setTimeout(() => {
+    if (mySeq !== speakSeq) return;
+    hideTyping();
+    addMsg(ur, "agent", (noUrVoice && ro) ? ro : null);
+    if (!("speechSynthesis" in window)) return;
+    try { speechSynthesis.cancel(); } catch (e) {}
+    const u = new SpeechSynthesisUtterance(ur);
+    const voices = speechSynthesis.getVoices();
+    const sel = document.getElementById("voiceSel");
+    let v = null;
+    if (sel && sel.value) v = voices.find(x => x.name === sel.value);
+    const enUr = voices.filter(x => { const l = (x.lang || "").toLowerCase(); return l.startsWith("en") || l.startsWith("ur"); });
+    if (!v) v = enUr.find(x => x.lang && x.lang.toLowerCase().startsWith("ur")) || enUr.find(x => /female|zira|aria|sana|natasha|jenny/i.test(x.name)) || enUr.find(x => x.lang && x.lang.toLowerCase().startsWith("en")) || voices[0];
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = "ur-PK"; }
+    const rateEl = document.getElementById("rateRange");
+    const pitchEl = document.getElementById("pitchRange");
+    u.rate = rateEl ? (parseFloat(rateEl.value) || 1) : 1;
+    u.pitch = pitchEl ? (parseFloat(pitchEl.value) || 1) : 1;
+    speaking = true;
+    if (listening && rec) { try { rec.abort(); } catch (e) {} }
+    const done = () => { if (mySeq !== speakSeq) return; speaking = false; if (listening) startRec(); };
+    u.onend = done;
+    u.onerror = done;
+    speechSynthesis.speak(u);
+  }, TYPING_MS);
+}
+function say(pair) { speak(pair[0], pair[1]); }
+function fillVoices() {
+  const sel = document.getElementById("voiceSel");
+  if (!sel || !("speechSynthesis" in window)) return;
+  const all = speechSynthesis.getVoices();
+  const voices = all.filter(v => { const l = (v.lang || "").toLowerCase(); return l.startsWith("en") || l.startsWith("ur"); })
+    .sort((a, b) => (a.lang.toLowerCase().startsWith("ur") ? 0 : 1) - (b.lang.toLowerCase().startsWith("ur") ? 0 : 1));
+  if (!voices.length) return;
+  const hasUr = voices.some(v => (v.lang || "").toLowerCase().startsWith("ur"));
+  noUrVoice = !hasUr;
+  // FIX: Urdu awaz na ho to status me saaf warning
+  if (noUrVoice) statusEl.textContent = "Urdu awaz install nahi hai. Windows: Microsoft Asad, Android: Google Urdu.";
+  const cur = sel.value;
+  sel.innerHTML = "";
+  voices.forEach(v => {
+    const o = document.createElement("option");
+    o.value = v.name;
+    o.textContent = (v.lang.toLowerCase().startsWith("ur") ? "Urdu — " : "English — ") + v.name + " (" + v.lang + ")";
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+function testVoice() { say(L.greet); }
+function setChips(list) {
+  const c = document.getElementById("chips");
+  c.innerHTML = "";
+  list.forEach(t => {
+    const s = document.createElement("span");
+    s.className = "chip";
+    s.textContent = t;
+    s.onclick = () => handleUser(t);
+    c.appendChild(s);
+  });
+}
+function renderCart() {
+  const list = document.getElementById("cartList");
+  const tot = document.getElementById("cartTotal");
+  if (!order.items.length) {
+    list.innerHTML = "Abhi cart khali hai.";
+    if (tot) tot.textContent = "";
+    return;
+  }
+  list.innerHTML = order.items.map((it, i) =>
+    '<div class="cart-item"><span>' + esc(it.dish.name) + " × " + it.qty + " — Rs. " + (it.dish.price * it.qty) + '</span><button class="rm" onclick="removeFromCart(' + i + ')">Hatao</button></div>'
+  ).join("");
+  const t = calcTotals(order.items);
+  tot.textContent = "Subtotal: Rs. " + t.subtotal + " | Delivery: Rs. " + t.delivery + (t.delivery === 0 ? " (FREE)" : "") + " | Total: Rs. " + t.total;
+}
+function removeFromCart(i) {
+  order.items.splice(i, 1);
+  renderCart();
+}
+function renderDash() {
+  document.getElementById("dashTotals").textContent =
+    "Aaj ke orders: " + ordersToday.length + " | Total sale: Rs. " + salesTotal;
+  const top = topDishes(ordersToday);
+  document.getElementById("topDishes").textContent = top.length
+    ? "Top dishes: " + top.map(d => d.name + " (" + d.qty + ")").join(", ")
+    : "";
+  const list = document.getElementById("dashList");
+  if (!ordersToday.length) {
+    list.innerHTML = '<li style="color:#cbb896">Abhi koi order nahi.</li>';
+    return;
+  }
+  list.innerHTML = ordersToday.map(o => {
+    const items = o.items.map(it => esc(it.dish.name) + " × " + it.qty).join(", ");
+    return "<li onclick=\"toggleDetail(" + o.no + ")\">Order #" + o.no + " — " + items + " — <b>Rs. " + o.total + "</b> (" + esc(o.name) + ", " + esc(o.time) + ") [" + esc(o.status) + "]"
+      + '<div class="order-detail" id="detail-' + o.no + '">Items: ' + items
+      + "<br>Naam: " + esc(o.name) + "<br>Number: " + esc(o.phone) + "<br>Address: " + esc(o.address) + "<br>Waqt: " + esc(o.time)
+      + "<br>Status: <select onchange=\"setStatus(" + o.no + ", this.value)\">"
+      + ["Naya", "Ban raha hai", "Rawana", "Deliver"].map(s => '<option value="' + s + '"' + (o.status === s ? " selected" : "") + ">" + s + "</option>").join("")
+      + "</select></div></li>";
+  }).join("");
+}
+function toggleDetail(no) {
+  const d = document.getElementById("detail-" + no);
+  if (!d) return;
+  if (d.classList && d.classList.toggle) d.classList.toggle("open");
+  else d.style.display = (d.style.display === "block") ? "none" : "block";
+}
+function setStatus(no, val) {
+  const o = ordersToday.find(x => x.no === no);
+  if (!o) return;
+  o.status = val;
+  persist();
+  renderDash();
+}
+function persist() {
+  store.set("dw_orders", ordersToday);
+  store.set("dw_sales", salesTotal);
+  store.set("dw_counter", orderCounter);
+}
+function downloadCSV() {
+  try {
+    const csv = buildCSV(ordersToday);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "dastarkhwan-orders.csv";
+    a.click();
+  } catch (e) {
+    statusEl.textContent = "CSV download nahi ho saka.";
+  }
+}
+function clearToday() {
+  ordersToday = [];
+  salesTotal = 0;
+  persist();
+  renderDash();
+}
+function isOpen() {
+  if (CONFIG.open24h) return true;
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return mins >= CONFIG.openHour * 60 + CONFIG.openMin && mins < CONFIG.closeHour * 60 + CONFIG.closeMin;
+}
+function stopMic() {
+  listening = false;
+  if (rec) { try { rec.stop(); } catch (e) {} }
+  const btn = document.getElementById("micBtn");
+  if (btn) { btn.textContent = "🎤 Mic"; if (btn.classList) btn.classList.remove("listening"); }
+}
+function startCall() {
+  stopMic();
+  if (!isOpen()) {
+    state = "idle";
+    say(L.closed);
+    setChips([]);
+    statusEl.textContent = "Restaurant band hai — 11:00 se 23:30 tak khula hota hai.";
+    return;
+  }
+  chatEl.innerHTML = "";
+  state = "awaiting_order";
+  order = { items: [] };
+  candidates = [];
+  clarifyOffset = 0;
+  pendingSegments = [];
+  failCount = 0;
+  menuMode = false;
+  returnToConfirm = false;
+  document.getElementById("waPanel").style.display = "none";
+  renderCart();
+  addMsg("— Call connected —", "sys");
+  say(L.greet);
+  setChips(["Chicken tikka chahiye", "Chicken biryani chahiye", "Karahi chahiye"]);
+  // FIX: Urdu awaz na ho to warning overwrite na ho — wohi status rahe
+  if (noUrVoice) statusEl.textContent = "Urdu awaz install nahi hai. Windows: Microsoft Asad, Android: Google Urdu.";
+  else statusEl.textContent = "Call chal rahi hai — jawab bolo ya likho.";
+}
+function doHandoff() {
+  state = "handoff";
+  say(L.handoff);
+  addMsg("— Manager ko transfer ho raha hai (fallback) —", "sys");
+  setChips([]);
+}
+// FIX: limit param — phone retry 3, baqi states 2 (default)
+function fallbackOrRetry(retryPair, limit) {
+  failCount++;
+  if (failCount >= (limit || 2)) { doHandoff(); return true; }
+  say(retryPair);
+  return false;
+}
+function addToCart(dish, qty) {
+  const q = qty && qty > 0 ? qty : 1;
+  const ex = order.items.find(it => it.dish.name === dish.name);
+  if (ex) ex.qty += q; else order.items.push({ dish: dish, qty: q });
+  renderCart();
+}
+function cartHasDrinkOrMeetha() {
+  return order.items.some(it => it.dish.cat === "Fresh & Chilled" || it.dish.cat === "Meetha — Shahi Style");
+}
+function goToDetails() {
+  // FIX: ek speak() ke baad doosra speak() nahi — upsell ya naam, ek hi jumla
+  if (cartHasDrinkOrMeetha()) {
+    state = "awaiting_name";
+    say(L.askName);
+    setChips(["Mera naam Ahmed hai", "Mera naam Ali hai"]);
+  } else {
+    state = "upsell";
+    say(upsellLine());
+    setChips(["Haan, add kar do", "Nahi, shukriya"]);
+  }
+}
+function askMore() {
+  state = "awaiting_more";
+  say(L.askMore);
+  setChips(["Haan, aur chahiye", "Nahi, bas"]);
+}
+function proceedFromMore() {
+  const t = calcTotals(order.items);
+  if (t.subtotal < CONFIG.minOrder) {
+    say(minOrderLine());
+    state = "awaiting_order";
+    setChips(["Chicken tikka chahiye", "Chicken biryani chahiye", "Karahi chahiye"]);
+    return;
+  }
+  goToDetails();
+}
+function goConfirm() {
+  state = "confirm";
+  say(recapLine(order, calcTotals(order.items)));
+  setChips(["Haan, confirm kar do", "Badalna hai", "Nahi, cancel kar do"]);
+}
+function cancelOrder() {
+  order.items = [];
+  renderCart();
+  state = "done";
+  say(L.cancelLine);
+  setChips([]);
+}
+function finalizeOrder() {
+  const totals = calcTotals(order.items);
+  orderCounter += 1;
+  const no = orderCounter;
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const saved = {
+    no: no, time: time, name: order.name, phone: order.phone, address: order.address,
+    items: order.items.map(it => ({ dish: it.dish, qty: it.qty })),
+    total: totals.total, status: "Naya"
+  };
+  ordersToday.push(saved);
+  salesTotal += totals.total;
+  if (order.loyalty) {
+    const db = store.get("dw_loyalty", {});
+    const np = order.loyalty.points + CONFIG.loyaltyPerOrder;
+    db[order.phone] = { name: order.loyalty.name, points: np };
+    db[String(order.phone).replace(/\D/g, "")] = { name: order.loyalty.name, points: np };
+    store.set("dw_loyalty", db);
+  }
+  persist();
+  renderDash();
+  const msg = buildWhatsAppMsg(order, totals);
+  document.getElementById("waMsg").textContent = msg;
+  const waBtn = document.getElementById("waBtn");
+  const waWarn = document.getElementById("waWarn");
+  // FIX: restaurantWA placeholder ho to button disabled + saaf warning (toota link na jaye)
+  if (String(CONFIG.restaurantWA).includes("XXXX")) {
+    waBtn.href = "#";
+    waBtn.style.pointerEvents = "none";
+    waBtn.style.opacity = "0.5";
+    if (waWarn) waWarn.textContent = "Pehle CONFIG me restaurantWA number daalein";
+  } else {
+    waBtn.href = "https://wa.me/" + CONFIG.restaurantWA + "?text=" + encodeURIComponent(msg);
+    waBtn.style.pointerEvents = "";
+    waBtn.style.opacity = "";
+    if (waWarn) waWarn.textContent = "";
+  }
+  document.getElementById("waPanel").style.display = "block";
+  order.items = [];
+  renderCart();
+  state = "done";
+  say(doneLine(no));
+  setChips([]);
+}
+
+// ---------- INTENTS (C.6: 15+ naye patterns) ----------
+function hasPhrase(t, g) {
+  return t === g || t.startsWith(g + " ") || t.endsWith(" " + g) || t.includes(" " + g + " ");
+}
+function isGreeting(t) { return ["salam", "assalam o alaikum", "hello", "hi", "kya haal hai"].some(g => hasPhrase(t, g)); }
+function isMenuAsk(t) { return ["menu batao", "menu dikhao", "kya kya hai", "kya available hai", "menu kya hai"].some(g => hasPhrase(t, g)); }
+function isPriceAsk(t) { return hasPhrase(t, "kitne ka") || hasPhrase(t, "kitne ki") || t.includes("price") || hasPhrase(t, "keemat") || hasPhrase(t, "rate"); }
+function isDeliveryTimeAsk(t) { return hasPhrase(t, "kitni der") || hasPhrase(t, "kitne time") || hasPhrase(t, "kab aayega") || hasPhrase(t, "kab pahunchega"); }
+function isDeliveryChargeAsk(t) { return hasPhrase(t, "delivery kitni") || t.includes("delivery charge"); }
+function isTotalAsk(t) { return hasPhrase(t, "total kitna") || hasPhrase(t, "kitna hua") || hasPhrase(t, "bill kitna"); }
+function isCartAsk(t) { return hasPhrase(t, "cart dikhao") || t.includes("cart me kya"); }
+function isThanks(t) { return hasPhrase(t, "shukriya") || hasPhrase(t, "thanks"); }
+function isBye(t) { return hasPhrase(t, "allah hafiz") || hasPhrase(t, "bye"); }
+function isCancel(t) { return hasPhrase(t, "cancel"); }
+function isChange(t) { return hasPhrase(t, "badalna hai") || hasPhrase(t, "tabdeel") || hasPhrase(t, "change karna"); }
+function isShowMore(t) { return hasPhrase(t, "aur dikhao"); }
+function tryPriceAsk(text) {
+  const t = norm(text);
+  if (!isPriceAsk(t)) return false;
+  const found = findDishes(text);
+  if (found.length === 1) { say(priceLine(found[0])); return true; }
+  if (found.length > 1) {
+    candidates = found; clarifyOffset = 0; pendingSegments = [];
+    state = "clarify";
+    say(clarifyLine(found, 0));
+    setChips(chipListForClarify(found, 0));
+    return true;
+  }
+  say(["Kis dish ki price poochni hai? Naam batayen.", "Kis dish ki price poochni hai? Naam batayen."]);
+  return true;
+}
+function chipListForClarify(cands, offset) {
+  const chips = cands.slice(offset, offset + 5).map(d => d.name);
+  if (cands.length > offset + 5) chips.push("Aur dikhao");
+  return chips;
+}
+function splitSegments(text) {
+  return norm(text).split(/\s+(?:aur|or|ke\s+saath|ke\s+sath|plus)\s+|,/).map(s => s.trim()).filter(Boolean);
+}
+function processSegments(segments) {
+  const added = [];
+  const unavailable = [];
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const found = findDishes(seg);
+    if (!found.length) continue;
+    if (found.length > 1) {
+      return { added: added, unavailable: unavailable, clarify: { cands: found, seg: seg, rest: segments.slice(i + 1) }, none: false };
+    }
+    const dish = found[0];
+    if (!dish.available) {
+      const alt = MENU.find(d => d.cat === dish.cat && d.available);
+      unavailable.push({ dish: dish, alt: alt });
+      continue;
+    }
+    const q = qtyForSegment(seg, dish) || 1;
+    added.push({ dish: dish, qty: q });
+  }
+  return { added: added, unavailable: unavailable, clarify: null, none: added.length === 0 && unavailable.length === 0 };
+}
+// NEW: ek jumle me kai dishes — segments process karo, clarify ho to wahan jao
+function tryDishFlow(text) {
+  const segs = splitSegments(text);
+  const res = processSegments(segs);
+  if (!res.added.length && !res.clarify && !res.unavailable.length) return false;
+  res.added.forEach(a => addToCart(a.dish, a.qty));
+  if (res.clarify) {
+    candidates = res.clarify.cands;
+    clarifyOffset = 0;
+    pendingSegments = res.clarify.rest;
+    state = "clarify";
+    say(clarifyLine(candidates, 0));
+    setChips(chipListForClarify(candidates, 0));
+    return true;
+  }
+  if (res.added.length) {
+    let ur = res.added.map(a => a.dish.name + " " + a.qty + " پلیٹ ایڈ کر دی ہے").join("، ") + "۔";
+    let ro = res.added.map(a => a.dish.name + " " + a.qty + " plate add kar di hai").join(", ") + ".";
+    res.unavailable.forEach(u => { ur += " " + unavailableLine(u.dish, u.alt)[0]; ro += " " + unavailableLine(u.dish, u.alt)[1]; });
+    ur += " " + L.askMore[0]; ro += " " + L.askMore[1];
+    failCount = 0;
+    speak(ur, ro);
+    state = "awaiting_more";
+    setChips(["Haan, aur chahiye", "Nahi, bas"]);
+    return true;
+  }
+  const u = res.unavailable[0];
+  say(unavailableLine(u.dish, u.alt));
+  setChips(u.alt ? [u.alt.name, "Chicken Biryani"] : ["Chicken Biryani", "Chicken Tikka"]);
+  return true;
+}
+function afterPickContinue() {
+  if (pendingSegments.length) {
+    const segs = pendingSegments;
+    pendingSegments = [];
+    const res = processSegments(segs);
+    if (res.added.length || res.clarify || res.unavailable.length) {
+      res.added.forEach(a => addToCart(a.dish, a.qty));
+      if (res.clarify) {
+        candidates = res.clarify.cands;
+        clarifyOffset = 0;
+        pendingSegments = res.clarify.rest;
+        state = "clarify";
+        say(clarifyLine(candidates, 0));
+        setChips(chipListForClarify(candidates, 0));
+        return;
+      }
+    }
+  }
+  askMore();
+}
+
+function handleUser(rawText) {
+  const text = rawText.trim();
+  if (!text || state === "idle" || state === "done" || state === "handoff") return;
+  addMsg(text, "user");
+  const t = norm(text);
+
+  // Global cancel/bye (order states me)
+  if (["awaiting_order", "awaiting_more", "clarify", "upsell", "confirm", "confirm_edit"].includes(state)) {
+    if (isCancel(t)) { cancelOrder(); return; }
+    if (isBye(t)) { order.items = []; renderCart(); state = "done"; say(L.byeLine); setChips([]); return; }
+  }
+
+  if (state === "awaiting_order") {
+    if (menuMode) {
+      menuMode = false;
+      if (CAT_BY_LABEL[t]) {
+        const cat = CAT_BY_LABEL[t];
+        const dishes = MENU.filter(d => d.cat === cat && d.available).slice(0, 5);
+        say(catDishesLine(cat, dishes));
+        setChips(dishes.map(d => d.name));
+        return;
+      }
+    }
+    if (tryPriceAsk(text)) return;
+    if (tryDishFlow(text)) return;
+    if (isGreeting(t)) { say(L.greetingReply); setChips(["Chicken tikka chahiye", "Chicken biryani chahiye", "Karahi chahiye"]); return; }
+    if (isMenuAsk(t)) { menuMode = true; say(L.menuCats); setChips(Object.values(CAT_LABEL)); return; }
+    if (isDeliveryTimeAsk(t)) { say(deliveryTimeLine()); return; }
+    if (isDeliveryChargeAsk(t)) { say(deliveryChargeLine()); return; }
+    if (isTotalAsk(t)) { say(totalLine(calcTotals(order.items))); return; }
+    if (isCartAsk(t)) { say(cartSummaryLine(order.items)); return; }
+    if (isThanks(t)) { say(L.thanksLine); return; }
+    if (fallbackOrRetry(L.retryDish)) return;
+    setChips(["Chicken tikka chahiye", "Chicken biryani chahiye", "Karahi chahiye"]);
+    return;
+  }
+
+  if (state === "awaiting_more") {
+    const yn = parseYesNo(text);
+    if (yn === "yes") { state = "awaiting_order"; say(L.moreAsk); setChips(["Chicken tikka chahiye", "Chicken biryani chahiye", "Karahi chahiye"]); return; }
+    if (yn === "no") { proceedFromMore(); return; }
+    if (tryPriceAsk(text)) return;
+    if (tryDishFlow(text)) return;
+    if (isGreeting(t)) { say(L.greetingReply); return; }
+    if (isMenuAsk(t)) { menuMode = true; state = "awaiting_order"; say(L.menuCats); setChips(Object.values(CAT_LABEL)); return; }
+    if (isDeliveryTimeAsk(t)) { say(deliveryTimeLine()); return; }
+    if (isDeliveryChargeAsk(t)) { say(deliveryChargeLine()); return; }
+    if (isTotalAsk(t)) { say(totalLine(calcTotals(order.items))); return; }
+    if (isCartAsk(t)) { say(cartSummaryLine(order.items)); return; }
+    if (fallbackOrRetry(["Haan ya nahi batayen — aur kuch chahiye?", "Haan ya nahi batayen — aur kuch chahiye?"])) return;
+    setChips(["Haan, aur chahiye", "Nahi, bas"]);
+    return;
+  }
+
+  if (state === "clarify") {
+    if (isShowMore(t) && clarifyOffset + 5 < candidates.length) {
+      clarifyOffset += 5;
+      say(clarifyLine(candidates, clarifyOffset));
+      setChips(chipListForClarify(candidates, clarifyOffset));
+      return;
+    }
+    const res = clarifyFilter(candidates, text);
+    if (res.pick) {
+      const dish = res.pick;
+      if (!dish.available) {
+        state = "awaiting_order";
+        say(unavailableLine(dish, null));
+        setChips(["Chicken Biryani", "Chicken Tikka"]);
+        return;
+      }
+      failCount = 0;
+      const q = qtyForSegment(text, dish) || 1;
+      addToCart(dish, q);
+      afterPickContinue();
+      return;
+    }
+    // FIX: clarify infinite loop — 2 dafa na samajh aaye to manager fallback
+    failCount++;
+    if (failCount >= 2) { doHandoff(); return; }
+    candidates = res.list;
+    clarifyOffset = 0;
+    say(clarifyLine(candidates, 0));
+    setChips(chipListForClarify(candidates, 0));
+    return;
+  }
+
+  if (state === "upsell") {
+    const yn = parseYesNo(text);
+    if (!yn) {
+      if (fallbackOrRetry(["Drink chahiye ya nahi? Haan ya nahi batayen.", "Drink chahiye ya nahi? Haan ya nahi batayen."])) return;
+      setChips(["Haan", "Nahi"]);
+      return;
+    }
+    failCount = 0;
+    if (yn === "yes") {
+      addToCart(UPSELL_DISH, 1);
+      state = "awaiting_name";
+      say(["Mint Margarita add kar di hai. " + L.askName[0], "Mint Margarita add kar di hai. " + L.askName[1]]);
+    } else {
+      state = "awaiting_name";
+      say(["Theek hai, drink nahi add kar rahi. " + L.askName[0], "Theek hai, drink nahi add kar rahi. " + L.askName[1]]);
+    }
+    setChips(["Mera naam Ahmed hai", "Mera naam Ali hai"]);
+    return;
+  }
+
+  if (state === "awaiting_name") {
+    order.name = cleanName(text);
+    failCount = 0;
+    if (returnToConfirm) { returnToConfirm = false; goConfirm(); return; }
+    state = "awaiting_phone";
+    say(["Shukriya " + order.name + "! " + L.askPhone[0], "Shukriya " + order.name + "! " + L.askPhone[1]]);
+    setChips(["03001234567", "03219876543"]);
+    return;
+  }
+
+  if (state === "awaiting_phone") {
+    const phone = validPhone(text);
+    if (!phone) {
+      // FIX: phone retry 3 (baqi states 2) — number ghalat ho to 3 dafa poochhe, phir manager
+      if (fallbackOrRetry(L.retryPhone, 3)) return;
+      setChips(["03001234567", "03219876543"]);
+      return;
+    }
+    failCount = 0;
+    order.phone = phone;
+    const loyal = loyaltyLookup(phone);
+    if (loyal) order.loyalty = loyal;
+    if (returnToConfirm) { returnToConfirm = false; goConfirm(); return; }
+    state = "awaiting_address";
+    if (loyal) say([loyaltyLine(loyal)[0] + " " + L.askAddress[0], loyaltyLine(loyal)[1] + " " + L.askAddress[1]]);
+    else say(L.askAddress);
+    setChips(["Satellite Town, Rawalpindi", "6th Road, Rawalpindi"]);
+    return;
+  }
+
+  if (state === "awaiting_address") {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    if (words.length < 3) {
+      if (fallbackOrRetry(L.retryAddress)) return;
+      setChips(["Satellite Town, Rawalpindi", "6th Road, Rawalpindi"]);
+      return;
+    }
+    failCount = 0;
+    order.address = text.trim();
+    goConfirm();
+    return;
+  }
+
+  if (state === "confirm") {
+    if (isChange(t)) {
+      state = "confirm_edit";
+      say(L.askEditWhat);
+      setChips(["Naam", "Address", "Order"]);
+      return;
+    }
+    const yn = parseYesNo(text);
+    if (!yn) {
+      if (fallbackOrRetry(["Confirm kar doon ya cancel? Haan ya nahi batayen.", "Confirm kar dun ya cancel? Haan ya nahi batayen."])) return;
+      setChips(["Haan, confirm kar do", "Badalna hai", "Nahi"]);
+      return;
+    }
+    if (yn === "no") { cancelOrder(); return; }
+    const totals = calcTotals(order.items);
+    if (totals.subtotal < CONFIG.minOrder) {
+      say(minOrderLine());
+      state = "awaiting_order";
+      setChips(["Chicken tikka chahiye", "Chicken biryani chahiye", "Karahi chahiye"]);
+      return;
+    }
+    finalizeOrder();
+    return;
+  }
+
+  if (state === "confirm_edit") {
+    if (hasPhrase(t, "naam")) { returnToConfirm = true; state = "awaiting_name"; say(L.askName); setChips(["Mera naam Ahmed hai"]); return; }
+    if (hasPhrase(t, "address")) { returnToConfirm = true; state = "awaiting_address"; say(L.askAddress); setChips(["Satellite Town, Rawalpindi"]); return; }
+    if (hasPhrase(t, "order")) { order.items = []; renderCart(); state = "awaiting_order"; say(L.moreAsk); setChips(["Chicken tikka chahiye", "Chicken biryani chahiye", "Karahi chahiye"]); return; }
+    if (fallbackOrRetry(L.askEditWhat)) return;
+    setChips(["Naam", "Address", "Order"]);
+    return;
+  }
+}
+
+function sendText() {
+  const el = document.getElementById("textIn");
+  const v = el.value.trim();
+  if (!v) return;
+  el.value = "";
+  handleUser(v);
+}
+
+function toggleListen() {
+  if (!SR) {
+    statusEl.textContent = "Is browser me mic nahi chalta — neeche likh ke jawab do.";
+    return;
+  }
+  if (listening) { stopMic(); return; }
+  listening = true;
+  micBlocked = false;
+  startRec();
+}
+function startRec() {
+  const btn = document.getElementById("micBtn");
+  if (!SR || !listening || speaking) return;
+  rec = new SR();
+  const langSel = document.getElementById("recLang");
+  rec.lang = (langSel && langSel.value) || "ur-PK";
+  rec.interimResults = true;
+  rec.continuous = true;
+  rec.onstart = () => {
+    micBlocked = false;
+    btn.textContent = "🔴 Mic ON hai — band karne ke liye dobara dabao";
+    if (btn.classList) btn.classList.add("listening");
+    statusEl.textContent = "Sun rahi hun...";
+  };
+  rec.onresult = (e) => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) handleUser(e.results[i][0].transcript);
+      else interim += e.results[i][0].transcript;
+    }
+    if (interim) statusEl.textContent = "Sun rahi hun: " + interim;
+  };
+  rec.onerror = (ev) => {
+    // FIX: mic permission deny par loop nahi — seedha band + saaf message
+    if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+      micBlocked = true;
+      listening = false;
+      btn.textContent = "🎤 Mic";
+      if (btn.classList) btn.classList.remove("listening");
+      statusEl.textContent = "Mic ki permission nahi mili — browser me mic allow karo ya likh ke jawab do.";
+      return;
+    }
+    statusEl.textContent = "Mic error: " + ev.error + " — dobara try karo ya likh ke jawab do.";
+  };
+  rec.onend = () => {
+    if (micBlocked) return;
+    if (listening && !speaking) { try { rec.start(); } catch (e) {} }
+    else if (!listening) {
+      btn.textContent = "🎤 Mic";
+      if (btn.classList) btn.classList.remove("listening");
+      statusEl.textContent = "Mic band hai.";
+    }
+  };
+  try { rec.start(); } catch (e) {}
+}
+
+if ("speechSynthesis" in window) {
+  speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); fillVoices(); };
+  fillVoices();
+}
+renderDash();
+renderCart();
+</script>
+</body>
+</html>
